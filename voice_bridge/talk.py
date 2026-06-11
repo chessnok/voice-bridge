@@ -77,6 +77,9 @@ def _instructions() -> str:
         "и не расширяй команду от себя.\n"
         "Пользователь — писатель: продиктованные строки стихов передавай в do_task ДОСЛОВНО, "
         "ничего не добавляя и не исправляя в его тексте.\n"
+        "ЗАПИСЬ И ПРАВКА СТИХОВ — только через подтверждение: сначала повтори услышанное "
+        "и спроси «Правильно понял: нужно добавить строку „...“, да?» — и лишь после согласия "
+        "вызывай do_task. Чтение и вопросы (прочитай, сколько) — сразу, без подтверждений.\n"
         "\n" + memory_context
     )
 
@@ -271,8 +274,9 @@ async def _talk(ws) -> None:
                 "input": {
                     "format": {"type": "audio/pcm", "rate": _RT_RATE},
                     "noise_reduction": {"type": "near_field"},
-                    # транскрипцию входа НЕ включаем: модель слушает аудио напрямую,
-                    # а побочная стенограмма только мусорила в логах
+                    # стенограмма входа — только для логов/трейсов; модель слышит
+                    # аудио напрямую, поэтому строка [вы≈] приблизительная
+                    "transcription": {"model": "gpt-4o-transcribe", "language": "ru"},
                     "turn_detection": {
                         "type": "semantic_vad",
                         "eagerness": config.REALTIME_VAD_EAGERNESS,
@@ -319,6 +323,12 @@ async def _talk(ws) -> None:
                         "content_index": 0,
                         "audio_end_ms": heard_ms,
                     }))
+            elif etype == "conversation.item.input_audio_transcription.completed":
+                transcript = event.get("transcript", "").strip()
+                if transcript:
+                    print(f"[вы≈] {transcript}")
+                    log.add(event.get("item_id", ""), "user", transcript)
+                    turn["user"] = transcript
             elif etype == "response.output_audio.delta":
                 if turn["first_audio_ms"] is None and turn["speech_ended_at"]:
                     turn["first_audio_ms"] = int(
@@ -341,7 +351,7 @@ async def _talk(ws) -> None:
                 usage = (event.get("response") or {}).get("usage") or {}
                 log.total_tokens = usage.get("total_tokens", log.total_tokens)
                 asyncio.create_task(_maybe_summarize(ws, log))
-                if turn["assistant"]:
+                if turn["user"] or turn["assistant"]:
                     snapshot = dict(turn)
                     threading.Thread(
                         target=observability.log_voice_turn,

@@ -48,6 +48,9 @@ def _load_dotenv_key(name: str) -> str | None:
 
 
 OPENAI_API_KEY = _load_dotenv_key("OPENAI_API_KEY")
+# Таймаут одного LLM-запроса: завесшие запросы (дефолт SDK — 600с!) обрубаются и ретраятся
+OPENAI_TIMEOUT = float(os.environ.get("VB_OPENAI_TIMEOUT", "30"))
+OPENAI_RETRIES = int(os.environ.get("VB_OPENAI_RETRIES", "2"))
 
 # Langfuse-трейсинг (опционально): без ключей трейсинг выключен
 LANGFUSE_PUBLIC_KEY = _load_dotenv_key("LANGFUSE_PUBLIC_KEY")

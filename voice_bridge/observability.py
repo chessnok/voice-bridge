@@ -22,7 +22,11 @@ def make_openai_client():
         from langfuse.openai import OpenAI
     else:
         from openai import OpenAI
-    return OpenAI(api_key=config.OPENAI_API_KEY)
+    return OpenAI(
+        api_key=config.OPENAI_API_KEY,
+        timeout=config.OPENAI_TIMEOUT,
+        max_retries=config.OPENAI_RETRIES,
+    )
 
 
 def observe_or_noop(**kwargs):
