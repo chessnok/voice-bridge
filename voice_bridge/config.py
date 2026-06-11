@@ -88,6 +88,9 @@ REALTIME_STT_MODEL = os.environ.get("VB_REALTIME_STT_MODEL", "gpt-4o-transcribe"
 REALTIME_SUMMARY_TOKENS = int(os.environ.get("VB_RT_SUMMARY_TOKENS", "12000"))
 # Насколько быстро VAD решает, что ты договорил: low|auto|high (high = быстрее ответ)
 REALTIME_VAD_EAGERNESS = os.environ.get("VB_VAD_EAGERNESS", "auto")
+# Полудуплекс: микрофон молчит, пока говорит ассистент (нужно без наушников —
+# иначе эхо из колонок зацикливает разговор). С наушниками ставь 0 — вернётся перебивание голосом.
+HALF_DUPLEX = os.environ.get("VB_HALF_DUPLEX", "1") != "0"
 
 # Мини-агент
 MINI_MODEL = os.environ.get("VB_MINI_MODEL", "gpt-5.1")
