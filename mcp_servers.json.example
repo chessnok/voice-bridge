@@ -1,7 +1,15 @@
 {
-  "email": {
-    "command": ".venv/bin/python",
-    "args": ["-m", "voice_bridge.mcp_email"],
-    "_комментарий": "на Windows command = .venv/Scripts/python.exe"
+  "mail": {
+    "command": "npx",
+    "args": ["-y", "mcp-mail-server"],
+    "env": {
+      "IMAP_HOST": "imap.gmail.com", "IMAP_PORT": "993", "IMAP_SECURE": "true",
+      "SMTP_HOST": "smtp.gmail.com", "SMTP_PORT": "465", "SMTP_SECURE": "true",
+      "EMAIL_USER": "user@example.com", "EMAIL_PASS": "пароль-приложения"
+    }
+  },
+  "webbrowser": {
+    "command": "npx",
+    "args": ["-y", "@browsermcp/mcp@latest"]
   }
 }
