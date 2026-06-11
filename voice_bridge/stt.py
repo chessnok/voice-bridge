@@ -46,7 +46,6 @@ def _transcribe_api(wav_bytes: bytes) -> str:
         model=config.WHISPER_API_MODEL,
         file=("speech.wav", wav_bytes, "audio/wav"),
         language=config.WHISPER_LANGUAGE,
-        prompt=config.STT_PROMPT,
         temperature=config.STT_TEMPERATURE,
     )
     return result.text.strip()
@@ -90,7 +89,6 @@ def transcribe_wav(path: str) -> str:
             model=config.WHISPER_API_MODEL,
             file=open(path, "rb"),
             language=config.WHISPER_LANGUAGE,
-            prompt=config.STT_PROMPT,
             temperature=config.STT_TEMPERATURE,
         )
         return result.text.strip()

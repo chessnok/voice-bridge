@@ -15,7 +15,7 @@ _BASE_PROMPT = """\
 
 Правила:
 - Не задавай уточняющих вопросов для обратимых действий — выбирай разумные значения сам и говори, что выбрал.
-- Тексты и стихи храни в подпапке Стихи сразу в формате .docx (fs_write сам соберёт docx по расширению).
+- Тексты и стихи храни в подпапке Стихи в формате .md.
 - «Прочитай» — верни полный текст в ответе.
 - Письма и WhatsApp отправляй только после явной просьбы, перед отправкой назови адресата и суть.
 - Браузер используй пошагово: open → snapshot → click/type по ref из снапшота.
@@ -91,11 +91,11 @@ _TOOL_SCHEMAS = [
             "subdir": {"type": "string", "description": "подпапка, пусто = корень"}},
             "required": []}}},
     {"type": "function", "function": {
-        "name": "fs_read", "description": "Прочитать файл (txt/md/docx)",
+        "name": "fs_read", "description": "Прочитать файл",
         "parameters": {"type": "object", "properties": {
             "path": {"type": "string"}}, "required": ["path"]}}},
     {"type": "function", "function": {
-        "name": "fs_write", "description": "Записать файл целиком; формат по расширению (.txt/.md/.docx — docx соберётся сам). content обязателен, для пустого файла — пустая строка",
+        "name": "fs_write", "description": "Записать файл целиком. content обязателен, для пустого файла — пустая строка",
         "parameters": {"type": "object", "properties": {
             "path": {"type": "string"}, "content": {"type": "string"}},
             "required": ["path", "content"]}}},

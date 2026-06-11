@@ -19,16 +19,6 @@ STT_BACKEND = os.environ.get("VB_STT", "api")
 WHISPER_API_MODEL = os.environ.get("VB_WHISPER_API_MODEL", "gpt-4o-transcribe")
 WHISPER_MODEL = os.environ.get("VB_WHISPER_MODEL", "small")
 WHISPER_LANGUAGE = os.environ.get("VB_LANGUAGE", "ru")
-# Подсказка распознаванию: стиль, частые слова команд и жаргон/форматы,
-# которые модель иначе глотает («создай docx» → «создай документ»)
-STT_PROMPT = os.environ.get(
-    "VB_STT_PROMPT",
-    "Голосовая команда компьютеру на русском. Часто встречаются форматы и термины: "
-    "docx, xlsx, pptx, pdf, txt, csv, json, zip, png, jpg, mp3, mp4, "
-    "Word, Excel, PowerPoint, Google Docs, Telegram, WhatsApp, email, гитхаб, браузер, "
-    "папка, файл, скачай, открой, создай, переименуй, отправь, найди. "
-    "Примеры: «создай docx документ», «сохрани в pdf», «открой xlsx таблицу».",
-)
 # Сколько секунд звука до нажатия клавиши подхватывать из кольцевого буфера
 PREROLL_SECONDS = float(os.environ.get("VB_PREROLL", "0.3"))
 

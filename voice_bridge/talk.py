@@ -23,7 +23,7 @@ _TALK_TOOLS = [
         "name": "do_task",
         "description": (
             "Выполнить действие на компьютере: создать/прочитать/править файлы и стихи, "
-            "экспорт в docx, отправка почты, браузер, заметки в память. "
+            "отправка почты, браузер, заметки в память. "
             "Передай команду пользователя целиком, своими словами не пересказывай результат до выполнения."
         ),
         "parameters": {
@@ -45,24 +45,11 @@ _TALK_TOOLS = [
     {
         "type": "function",
         "name": "fs_read",
-        "description": "Мгновенно прочитать файл (txt/md/docx) — для «прочитай стих/документ».",
+        "description": "Мгновенно прочитать файл — для «прочитай стих/документ».",
         "parameters": {
             "type": "object",
             "properties": {"path": {"type": "string"}},
             "required": ["path"],
-        },
-    },
-    {
-        "type": "function",
-        "name": "voice_settings",
-        "description": (
-            "Изменить скорость своей речи, когда пользователь просит говорить "
-            "быстрее/медленнее. 1.0 — обычная, 1.5 — максимум, 0.5 — минимум."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {"speed": {"type": "number", "minimum": 0.5, "maximum": 1.5}},
-            "required": ["speed"],
         },
     },
 ]
@@ -88,9 +75,7 @@ def _instructions() -> str:
         "НЕ действуй, коротко переспроси: «Не расслышал, повтори». "
         "В do_task передавай ТОЛЬКО то, что пользователь реально сказал — НИКОГДА не сочиняй "
         "и не расширяй команду от себя.\n"
-        "Просит говорить быстрее/медленнее — вызови voice_settings. Просит покороче или "
-        "подробнее — просто меняй стиль ответов.\n\n"
-        + memory_context
+        "\n" + memory_context
     )
 
 
@@ -190,15 +175,7 @@ async def _handle_function_call(ws, player: "_Player", call_id: str, name: str, 
     except json.JSONDecodeError:
         args = {}
 
-    if name == "voice_settings":
-        speed = max(0.5, min(1.5, float(args.get("speed", 1.0))))
-        await ws.send(json.dumps({
-            "type": "session.update",
-            "session": {"type": "realtime", "audio": {"output": {"speed": speed}}},
-        }))
-        print(f"  [голос] скорость → {speed}")
-        result = f"Скорость речи установлена: {speed}"
-    elif name in ("fs_list", "fs_read"):  # быстрые read-only — мимо полного агента
+    if name in ("fs_list", "fs_read"):  # быстрые read-only — мимо полного агента
         from . import mini_tools
 
         fn = mini_tools.fs_list if name == "fs_list" else mini_tools.fs_read

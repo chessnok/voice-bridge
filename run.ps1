@@ -18,6 +18,8 @@ if (-not $env:VB_NO_UPDATE) {
 uv sync -q
 
 $env:PYTHONIOENCODING = "utf-8"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 $py = ".venv\Scripts\python.exe"
 $port = if ($env:VB_SERVER_PORT) { $env:VB_SERVER_PORT } else { "8765" }
 
@@ -26,10 +28,10 @@ Get-CimInstance Win32_Process -Filter "Name like 'python%'" |
     Where-Object { $_.CommandLine -match "voice_bridge\.server" } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
-# --- сервер агента (фоном) ---
+# --- сервер агента (фоном); лог пишет сам в UTF-8 (редирект PowerShell ломает кириллицу) ---
 $env:VB_SERVER_PORT = $port
+$env:VB_SERVER_LOG = "logs\server.log"
 $server = Start-Process -FilePath $py -ArgumentList "-m", "voice_bridge.server" `
-    -RedirectStandardOutput "logs\server.log" -RedirectStandardError "logs\server.err.log" `
     -WindowStyle Hidden -PassThru
 
 try {
@@ -43,7 +45,7 @@ try {
             if ($_.Exception.Response) { $ready = $true; break }  # 404 = сервер жив
         }
         if ($server.HasExited) {
-            Write-Host "[run] сервер не стартовал, лог:"; Get-Content logs\server.err.log -Tail 5
+            Write-Host "[run] сервер не стартовал, лог:"; Get-Content logs\server.log -Tail 5 -Encoding UTF8
             exit 1
         }
         Start-Sleep -Milliseconds 500
