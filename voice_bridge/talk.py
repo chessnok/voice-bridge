@@ -95,12 +95,17 @@ def _instructions() -> str:
 
 
 class _Player:
-    """Воспроизведение входящего аудио: перебивание + учёт проигранного по реплике."""
+    """Воспроизведение входящего аудио: перебивание + точный учёт проигранного.
+
+    Каждый кусок аудио помечен репликой (item_id); бипы-earcons идут без метки
+    и в счёт проигранного НЕ попадают — иначе truncate шлёт завышенные мс.
+    """
 
     def __init__(self) -> None:
         self._buf = bytearray()
+        self._segments: list = []  # [(длина_байт_остаток, item_id|None), ...]
+        self._played: dict = {}    # item_id -> проиграно байт
         self._lock = threading.Lock()
-        self._played_bytes = 0  # реально ушло в динамик с начала текущей реплики
         self.current_item: str | None = None
         self._stream = sd.OutputStream(
             samplerate=_RT_RATE, channels=1, dtype="int16",
@@ -113,24 +118,33 @@ class _Player:
         with self._lock:
             chunk = bytes(self._buf[:need])
             del self._buf[:len(chunk)]
-            self._played_bytes += len(chunk)
+            consumed = len(chunk)
+            while consumed > 0 and self._segments:
+                seg_len, seg_item = self._segments[0]
+                take = min(consumed, seg_len)
+                if seg_item is not None:
+                    self._played[seg_item] = self._played.get(seg_item, 0) + take
+                if take == seg_len:
+                    self._segments.pop(0)
+                else:
+                    self._segments[0] = (seg_len - take, seg_item)
+                consumed -= take
         out = np.frombuffer(chunk.ljust(need, b"\x00"), dtype=np.int16)
         outdata[:, 0] = out
 
     def mark_item(self, item_id: str) -> None:
-        """Началась новая реплика ассистента — счёт проигранного с нуля."""
         with self._lock:
-            if self.current_item != item_id:
-                self.current_item = item_id
-                self._played_bytes = 0
+            self.current_item = item_id
 
     def played_ms(self) -> int:
+        """Проиграно мс ТЕКУЩЕЙ реплики (без бипов и чужих хвостов)."""
         with self._lock:
-            return self._played_bytes * 1000 // (_RT_RATE * 2)
+            return self._played.get(self.current_item, 0) * 1000 // (_RT_RATE * 2)
 
-    def feed(self, pcm: bytes) -> None:
+    def feed(self, pcm: bytes, item_id: str | None = None) -> None:
         with self._lock:
             self._buf.extend(pcm)
+            self._segments.append((len(pcm), item_id))
             self._last_active = __import__("time").monotonic()
 
     def is_active(self, tail_seconds: float = 0.3) -> bool:
@@ -154,6 +168,7 @@ class _Player:
         """Пользователь перебил — мгновенно замолкаем."""
         with self._lock:
             self._buf.clear()
+            self._segments.clear()
 
 
 async def _mic_sender(ws, player: "_Player") -> None:
@@ -356,7 +371,7 @@ async def _talk(ws) -> None:
                         (_time.monotonic() - turn["speech_ended_at"]) * 1000
                     )
                 player.mark_item(event.get("item_id", ""))
-                player.feed(base64.b64decode(event["delta"]))
+                player.feed(base64.b64decode(event["delta"]), item_id=event.get("item_id"))
             elif etype == "response.output_audio_transcript.done":
                 transcript = event.get("transcript", "")
                 print(f"[голос] {transcript}")
@@ -387,7 +402,11 @@ async def _talk(ws) -> None:
                     ).start()
                     turn.update({"user": "", "assistant": "", "interrupted": False, "tools": []})
             elif etype == "error":
-                print(f"[ошибка] {event.get('error', {}).get('message', event)}")
+                msg = str(event.get("error", {}).get("message", event))
+                if "already shorter" in msg:
+                    pass  # truncate был лишним: реплику дослушали целиком
+                else:
+                    print(f"[ошибка] {msg}")
     finally:
         sender.cancel()
 
