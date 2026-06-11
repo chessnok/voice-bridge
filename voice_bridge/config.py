@@ -73,7 +73,6 @@ AGENT_BROWSER_BIN = os.environ.get("VB_AGENT_BROWSER_BIN", "agent-browser")
 # Режим живого разговора (Realtime API)
 REALTIME_MODEL = os.environ.get("VB_REALTIME_MODEL", "gpt-realtime-2")
 REALTIME_VOICE = os.environ.get("VB_REALTIME_VOICE", "marin")
-REALTIME_STT_MODEL = os.environ.get("VB_REALTIME_STT_MODEL", "gpt-4o-transcribe")
 # Порог токенов сессии, после которого старые ходы сжимаются в краткое содержание
 REALTIME_SUMMARY_TOKENS = int(os.environ.get("VB_RT_SUMMARY_TOKENS", "12000"))
 # Насколько быстро VAD решает, что ты договорил: low|auto|high (high = быстрее ответ)
