@@ -145,16 +145,6 @@ class _Player:
         with self._lock:
             self._buf.extend(pcm)
             self._segments.append((len(pcm), item_id))
-            self._last_active = __import__("time").monotonic()
-
-    def is_active(self, tail_seconds: float = 0.3) -> bool:
-        """Говорим сейчас или только что закончили (хвост против остатков эха)."""
-        import time as _t
-
-        with self._lock:
-            if self._buf:
-                return True
-            return (_t.monotonic() - getattr(self, "_last_active", 0.0)) < tail_seconds
 
     def earcon(self, freq: int, ms: int = 120, volume: float = 0.25) -> None:
         """Короткий звуковой статус (для незрячего пользователя — сигнал состояния)."""
@@ -171,7 +161,7 @@ class _Player:
             self._segments.clear()
 
 
-async def _mic_sender(ws, player: "_Player") -> None:
+async def _mic_sender(ws) -> None:
     queue: asyncio.Queue = asyncio.Queue(maxsize=50)
     loop = asyncio.get_running_loop()
 
@@ -188,10 +178,6 @@ async def _mic_sender(ws, player: "_Player") -> None:
     with stream:
         while True:
             chunk = await queue.get()
-            # полудуплекс: пока говорит ассистент, шлём ТИШИНУ (не выбрасываем чанки —
-            # дыры в таймлайне склеивают обрывки речи и порождают фантомы распознавания)
-            if config.HALF_DUPLEX and player.is_active():
-                chunk = b"\x00" * len(chunk)
             await ws.send(json.dumps({
                 "type": "input_audio_buffer.append",
                 "audio": base64.b64encode(chunk).decode(),
@@ -327,7 +313,7 @@ async def _talk(ws) -> None:
         },
     }))
 
-    sender = asyncio.create_task(_mic_sender(ws, player))
+    sender = asyncio.create_task(_mic_sender(ws))
     log = _SessionLog()
     greeted = False
     # метрики текущего хода для online-оценки (Langfuse voice-turn)
