@@ -89,6 +89,24 @@ def fs_append(path: str, content: str) -> str:
     return f"Дописано в {path}"
 
 
+def fs_delete(path: str) -> str:
+    """«Удаление» = перемещение в Корзину внутри рабочей папки — можно вернуть."""
+    src = _safe_path(path)
+    if not src.exists():
+        raise ToolError(f"Файла нет: {path}")
+    if src.is_dir():
+        raise ToolError("Папки не удаляю, только файлы")
+    trash = _workdir() / "Корзина"
+    trash.mkdir(exist_ok=True)
+    dst = trash / src.name
+    counter = 1
+    while dst.exists():
+        dst = trash / f"{src.stem}_{counter}{src.suffix}"
+        counter += 1
+    src.rename(dst)
+    return f"Файл {src.name} перемещён в Корзину"
+
+
 def memory_note(text: str) -> str:
     """Дописать заметку в дневник memory/ГГГГ-ММ-ДД.md."""
     from datetime import datetime

@@ -22,6 +22,9 @@ _BASE_PROMPT = """\
 - Тексты и стихи храни в подпапке Стихи в формате .md.
 - «Прочитай» — верни полный текст в ответе.
 - Письма и WhatsApp отправляй только после явной просьбы, перед отправкой назови адресата и суть.
+- УДАЛЕНИЕ файла: сначала НАЙДИ его реальный путь через fs_list (не угадывай), затем спроси
+  подтверждение с точным именем («Удаляю „Море.md“, точно?»), и только после согласия
+  вызывай fs_delete. Файл уходит в Корзину — скажи об этом.
 - Браузер используй пошагово: open → snapshot → click/type по ref из снапшота.
 - Если инструмент вернул ошибку — попробуй исправить параметры и повтори, не сдавайся сразу.
 
@@ -84,6 +87,7 @@ _TOOLS = {
     "fs_read": mini_tools.fs_read,
     "fs_write": mini_tools.fs_write,
     "fs_append": mini_tools.fs_append,
+    "fs_delete": mini_tools.fs_delete,
     "browser": mini_tools.browser,
     "memory_note": mini_tools.memory_note,
 }
@@ -108,6 +112,11 @@ _TOOL_SCHEMAS = [
         "parameters": {"type": "object", "properties": {
             "path": {"type": "string"}, "content": {"type": "string"}},
             "required": ["path", "content"]}}},
+    {"type": "function", "function": {
+        "name": "fs_delete",
+        "description": "Удалить файл (перемещает в папку Корзина, можно восстановить). Вызывай ТОЛЬКО после явного голосового подтверждения пользователя",
+        "parameters": {"type": "object", "properties": {
+            "path": {"type": "string"}}, "required": ["path"]}}},
     {"type": "function", "function": {
         "name": "browser", "description": "Один шаг браузера agent-browser: 'open <url>' | 'snapshot' | 'click <ref>' | 'type <ref> <текст>' | 'press <клавиша>' | 'get text <ref>' | 'close'",
         "parameters": {"type": "object", "properties": {
