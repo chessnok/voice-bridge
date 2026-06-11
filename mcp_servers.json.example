@@ -1,0 +1,7 @@
+{
+  "email": {
+    "command": ".venv/bin/python",
+    "args": ["-m", "voice_bridge.mcp_email"],
+    "_комментарий": "на Windows command = .venv/Scripts/python.exe"
+  }
+}

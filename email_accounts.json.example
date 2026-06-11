@@ -1,0 +1,10 @@
+[
+  {
+    "name": "личная",
+    "host": "smtp.example.com",
+    "port": 465,
+    "user": "user@example.com",
+    "password": "пароль-приложения",
+    "from": "user@example.com"
+  }
+]

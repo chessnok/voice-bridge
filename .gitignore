@@ -1,0 +1,15 @@
+# секреты и локальные данные — НИКОГДА в репо
+.env
+email_accounts.json
+mcp_servers.json
+sessions/
+recordings/
+logs/
+
+# окружение
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+node_tools/
+uv.lock
