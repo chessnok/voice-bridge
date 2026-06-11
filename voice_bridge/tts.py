@@ -31,6 +31,15 @@ def synthesize_to_file(text: str, out_path: str) -> None:
     asyncio.run(run())
 
 
+def beep(freq: int = 880, ms: int = 120) -> None:
+    """Короткий звуковой сигнал состояния (не блокирует)."""
+    subprocess.Popen(
+        ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet",
+         "-f", "lavfi", "-i", f"sine=frequency={freq}:duration={ms / 1000}"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+
+
 def play_file(path: str) -> None:
     subprocess.run(
         ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", path],

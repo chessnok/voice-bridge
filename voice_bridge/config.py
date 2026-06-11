@@ -22,6 +22,9 @@ WHISPER_LANGUAGE = os.environ.get("VB_LANGUAGE", "ru")
 # Сколько секунд звука до нажатия клавиши подхватывать из кольцевого буфера
 PREROLL_SECONDS = float(os.environ.get("VB_PREROLL", "0.3"))
 
+# Чувствительность VAD каскадного разговора: порог = шум * множитель (меньше = чувствительнее)
+VAD_SENSITIVITY = float(os.environ.get("VB_VAD_SENSITIVITY", "2.2"))
+
 # Детерминированная расшифровка
 STT_TEMPERATURE = float(os.environ.get("VB_STT_TEMPERATURE", "0"))
 

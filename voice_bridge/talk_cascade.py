@@ -15,9 +15,9 @@ from . import agent, config, stt, tts
 
 _FRAME = 480  # 30мс @ 16kHz
 _PREROLL_FRAMES = 10          # 0.3с до начала речи
-_START_FRAMES = 5             # речь: 5 громких кадров из 8
+_START_FRAMES = 3             # речь: 3 громких кадра из 8
 _END_SILENCE_FRAMES = 27      # конец: ~0.8с тишины
-_MIN_SPEECH_SECONDS = 0.4
+_MIN_SPEECH_SECONDS = 0.3
 _MAX_UTTERANCE_SECONDS = 30
 
 _CASCADE_RULES = """
@@ -33,7 +33,7 @@ class EnergyVad:
     """Детектор реплик по энергии с адаптивным порогом и прероллом."""
 
     def __init__(self, noise_floor: float) -> None:
-        self._threshold = max(noise_floor * 3.5, 0.006)
+        self._threshold = max(noise_floor * config.VAD_SENSITIVITY, 0.004)
         self._preroll: collections.deque = collections.deque(maxlen=_PREROLL_FRAMES)
         self._recent: collections.deque = collections.deque(maxlen=8)
         self._recording = False
@@ -84,6 +84,7 @@ def _calibrate(frames_queue: "queue.Queue", seconds: float = 1.5) -> float:
 
 
 def _handle_utterance(audio: np.ndarray) -> None:
+    tts.beep(880)  # «услышал, обрабатываю»
     text = stt.transcribe(audio)
     if not text:
         return
