@@ -50,7 +50,8 @@ cp .env.example .env && $EDITOR .env    # OPENAI_API_KEY
 
 | Команда | Режим |
 |---|---|
-| `run.ps1 --talk` / `./run.sh --talk` | живой разговор (для основного пользователя) |
+| `run.ps1 --talk` / `./run.sh --talk` | живой разговор: Realtime API (быстро, ~1 с, перебивания) |
+| `... --talk-cascade` | живой разговор: каскад STT→LLM→TTS (медленнее, ~4-6 с, понимает заметно лучше) |
 | `run.ps1` / `./run.sh` | push-to-talk по Ctrl+K |
 | `... --text "команда"` | текстовый прогон без микрофона (отладка) |
 

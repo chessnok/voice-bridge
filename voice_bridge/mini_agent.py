@@ -171,14 +171,14 @@ def _get_client():
 
 
 @observability.observe_or_noop()
-def ask(message: str) -> str:
+def ask(message: str, extra_system: str = "") -> str:
     with observability.trace_attrs("voice-task", message):
-        return _ask_inner(message)
+        return _ask_inner(message, extra_system)
 
 
-def _ask_inner(message: str) -> str:
+def _ask_inner(message: str, extra_system: str = "") -> str:
     client = _get_client()
-    messages = [{"role": "system", "content": _build_system_prompt()}]
+    messages = [{"role": "system", "content": _build_system_prompt() + ("\n" + extra_system if extra_system else "")}]
     messages += _load_history()
     messages.append({"role": "user", "content": message})
     tools = _TOOL_SCHEMAS + mcp_client.get_tool_schemas()

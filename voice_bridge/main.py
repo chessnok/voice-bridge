@@ -175,7 +175,9 @@ def run_hotkey_loop() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Голосовой ассистент")
     parser.add_argument("--talk", action="store_true",
-                        help="живой разговор: без хоткея, перебивания, мгновенные ответы")
+                        help="живой разговор: Realtime API (быстро, перебивания)")
+    parser.add_argument("--talk-cascade", action="store_true",
+                        help="живой разговор: каскад STT→LLM→TTS (медленнее, понимает лучше)")
     parser.add_argument("--text", help="тест: команда текстом, без микрофона")
     parser.add_argument("--wav", help="тест: аудиофайл вместо микрофона")
     args = parser.parse_args()
@@ -184,6 +186,10 @@ def main() -> None:
         from . import talk
 
         talk.run_talk_mode()
+    elif args.talk_cascade:
+        from . import talk_cascade
+
+        talk_cascade.run_cascade_mode()
     elif args.text:
         handle_text(args.text)
     elif args.wav:

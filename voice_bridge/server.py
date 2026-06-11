@@ -46,7 +46,7 @@ class AgentHandler(BaseHTTPRequestHandler):
             if not text:
                 self._reply(400, {"error": "пустой text"})
                 return
-            self._reply(200, {"reply": mini_agent.ask(text)})
+            self._reply(200, {"reply": mini_agent.ask(text, extra_system=str(data.get("extra_system", "")))})
         except Exception as exc:
             self._reply(500, {"error": str(exc)})
 

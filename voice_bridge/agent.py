@@ -10,9 +10,9 @@ class AgentError(Exception):
     pass
 
 
-def _ask_remote(message: str) -> str:
+def _ask_remote(message: str, extra_system: str = "") -> str:
     url = config.AGENT_URL.rstrip("/") + "/ask"
-    payload = json.dumps({"text": message}).encode("utf-8")
+    payload = json.dumps({"text": message, "extra_system": extra_system}).encode("utf-8")
     request = urllib.request.Request(
         url, data=payload, method="POST",
         headers={"Content-Type": "application/json"},
@@ -36,13 +36,13 @@ def _ask_remote(message: str) -> str:
     return data["reply"]
 
 
-def ask_agent(message: str) -> str:
+def ask_agent(message: str, extra_system: str = "") -> str:
     if config.AGENT_URL:
-        return _ask_remote(message)
+        return _ask_remote(message, extra_system)
     from . import mini_agent
 
     try:
-        return mini_agent.ask(message)
+        return mini_agent.ask(message, extra_system=extra_system)
     except AgentError:
         raise
     except Exception as exc:
