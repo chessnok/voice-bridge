@@ -17,7 +17,6 @@ from . import agent, config, stt, tts
 _FRAME = 480  # 30мс @ 16kHz
 _PREROLL_FRAMES = 10          # 0.3с до начала речи
 _START_FRAMES = 3             # речь: 3 громких кадра из 8
-_END_SILENCE_FRAMES = 27      # конец: ~0.8с тишины
 _MIN_SPEECH_SECONDS = 0.3
 _MAX_UTTERANCE_SECONDS = 30
 
@@ -35,6 +34,7 @@ class EnergyVad:
 
     def __init__(self, noise_floor: float) -> None:
         self._threshold = max(noise_floor * config.VAD_SENSITIVITY, 0.004)
+        self._end_silence_frames = int(config.VAD_END_SILENCE_SECONDS * config.SAMPLE_RATE / _FRAME)
         self._preroll: collections.deque = collections.deque(maxlen=_PREROLL_FRAMES)
         self._recent: collections.deque = collections.deque(maxlen=8)
         self._recording = False
@@ -58,10 +58,10 @@ class EnergyVad:
         self._frames.append(frame)
         self._silence_run = 0 if loud else self._silence_run + 1
         too_long = len(self._frames) * _FRAME / config.SAMPLE_RATE > _MAX_UTTERANCE_SECONDS
-        if self._silence_run >= _END_SILENCE_FRAMES or too_long:
+        if self._silence_run >= self._end_silence_frames or too_long:
             utterance = np.concatenate(self._frames)
             self._reset()
-            speech_seconds = len(utterance) / config.SAMPLE_RATE - 0.8  # минус хвост тишины
+            speech_seconds = len(utterance) / config.SAMPLE_RATE - config.VAD_END_SILENCE_SECONDS
             if speech_seconds >= _MIN_SPEECH_SECONDS:
                 return utterance
         return None
