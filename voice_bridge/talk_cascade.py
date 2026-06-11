@@ -7,6 +7,7 @@
 import collections
 import queue
 import threading
+from pathlib import Path
 
 import numpy as np
 import sounddevice as sd
@@ -115,10 +116,21 @@ def run_cascade_mode() -> None:
         samplerate=config.SAMPLE_RATE, channels=1, dtype="float32",
         blocksize=_FRAME, device=config.INPUT_DEVICE, callback=cb,
     )
+    sounds = Path(__file__).resolve().parent.parent / "sounds"
     with stream:
         print("[разговор] калибрую шум комнаты, помолчи секунду...")
+        busy.set()  # голосовая заставка не должна попасть в замер шума
+        tts.play_file(str(sounds / "calibrating.mp3"))
+        with frames.mutex:
+            frames.queue.clear()
+        busy.clear()
         vad = EnergyVad(_calibrate(frames))
         print("[разговор] слушаю — просто говори (Ctrl+C — выход)")
+        busy.set()  # и заставка «слушаю» не должна сама стриггерить VAD
+        tts.play_file(str(sounds / "ready.mp3"))
+        with frames.mutex:
+            frames.queue.clear()
+        busy.clear()
         while True:
             frame = frames.get()
             utterance = vad.feed(frame)
