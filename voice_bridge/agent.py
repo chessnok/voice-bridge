@@ -22,6 +22,13 @@ def _ask_remote(message: str) -> str:
     try:
         with urllib.request.urlopen(request, timeout=config.AGENT_TIMEOUT_SECONDS) as resp:
             data = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        # сервер ответил ошибкой — вытащить причину из тела, а не глотать её
+        try:
+            detail = json.loads(exc.read()).get("error", "")[:300]
+        except Exception:
+            detail = ""
+        raise AgentError(f"Агент упал ({exc.code}): {detail or exc}") from exc
     except urllib.error.URLError as exc:
         raise AgentError(f"Сервер агента недоступен: {exc}") from exc
     if "reply" not in data:

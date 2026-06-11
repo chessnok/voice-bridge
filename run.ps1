@@ -17,6 +17,7 @@ if (-not $env:VB_NO_UPDATE) {
 }
 uv sync -q
 
+$env:PYTHONIOENCODING = "utf-8"
 $py = ".venv\Scripts\python.exe"
 $port = if ($env:VB_SERVER_PORT) { $env:VB_SERVER_PORT } else { "8765" }
 

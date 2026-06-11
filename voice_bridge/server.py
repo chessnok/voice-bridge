@@ -3,6 +3,14 @@
 Запуск на сервере:  python -m voice_bridge.server
 Клиент локально:    VB_AGENT_URL=http://host:8765 + VB_AGENT_TOKEN в .env
 """
+import sys
+
+# Windows: консоль/редиректы по умолчанию cp1251 — кириллица и «→» в print роняют процесс
+for stream in (sys.stdout, sys.stderr):
+    if stream and hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 

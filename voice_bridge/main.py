@@ -5,6 +5,14 @@
   python -m voice_bridge.main --text "..."  # тест: текст вместо микрофона
   python -m voice_bridge.main --wav f.wav   # тест: аудиофайл вместо микрофона
 """
+import sys
+
+# Windows: консоль/редиректы по умолчанию cp1251 — кириллица и «→» в print роняют процесс
+for stream in (sys.stdout, sys.stderr):
+    if stream and hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 import argparse
 import collections
 import os
