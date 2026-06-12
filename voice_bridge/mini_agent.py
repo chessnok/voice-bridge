@@ -29,8 +29,13 @@ _BASE_PROMPT = """\
   пользователя, сессии живые): navigate → snapshot → click/type по ref. Отправка сообщения
   в WhatsApp — необратимое действие: подтверди адресата и текст до отправки.
 - Почта — инструменты mail__* (чтение, поиск, отправка).
+- Вложения с текстами/стихами отправляй в формате .docx (если пользователь явно не попросил
+  другой): перед отправкой собери файл через fs_write с расширением .docx, в attachments
+  передай его АБСОЛЮТНЫЙ путь (рабочая папка указана ниже). Не отправляй .md — у получателя
+  он не откроется как документ.
 - Рабочий стол пользователя — desktop_list/desktop_read, ТОЛЬКО чтение (txt, docx, pdf).
   Писать, менять и удалять там нельзя — для записей используй рабочую папку.
+- Файлы docx и pdf умеют читать и fs_read (рабочая папка), и desktop_read (рабочий стол).
 - Если инструмент вернул ошибку — попробуй исправить параметры и повтори, не сдавайся сразу.
 
 Память (файлы в твоей рабочей папке):
@@ -78,6 +83,8 @@ def _build_system_prompt() -> str:
     _ensure_memory_files()
     today = date.today()
     parts = [_BASE_PROMPT]
+    workdir = Path(config.MINI_WORKDIR).expanduser().resolve()
+    parts.append(f"Абсолютный путь рабочей папки (для attachments в письмах): {workdir}")
     parts.append("=== SOUL.md ===\n" + _read_or_empty(_workdir_file("SOUL.md")))
     parts.append("=== MEMORY.md ===\n" + _read_or_empty(_workdir_file("MEMORY.md")))
     for day in (today - timedelta(days=1), today):

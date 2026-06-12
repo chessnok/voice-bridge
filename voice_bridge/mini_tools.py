@@ -48,35 +48,49 @@ def _read_text_smart(p: Path) -> str:
         return raw.decode("cp1251", errors="replace")
 
 
+def _docx_to_text(p: Path) -> str:
+    """docx → текст чистым python (раньше был pandoc — внешний бинарь, на Windows его нет)."""
+    try:
+        from docx import Document
+    except ImportError as exc:
+        raise ToolError(f"Нет библиотеки python-docx: {exc}")
+    try:
+        doc = Document(str(p))
+    except Exception as exc:
+        raise ToolError(f"Не смог открыть docx: {exc}")
+    parts = [para.text for para in doc.paragraphs]
+    for table in doc.tables:
+        for row in table.rows:
+            parts.append(" | ".join(cell.text for cell in row.cells))
+    return "\n".join(parts).strip() or "(документ пуст)"
+
+
 def fs_read(path: str) -> str:
     p = _safe_path(path)
     if not p.exists():
         raise ToolError(f"Файла нет: {path}")
-    if p.suffix == ".docx":
-        out = subprocess.run(
-            ["pandoc", str(p), "-t", "plain"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30
-        )
-        if out.returncode != 0:
-            raise ToolError(f"Не смог прочитать docx: {out.stderr[:200]}")
-        return out.stdout
+    if p.suffix.lower() == ".docx":
+        return _docx_to_text(p)
+    if p.suffix.lower() == ".pdf":
+        return _read_pdf(p)
     return _read_text_smart(p)
 
 
 def _write_docx(p, content: str) -> None:
-    """Текст → docx через pandoc (бинарный формат, напрямую писать нельзя)."""
-    import tempfile
-
-    with tempfile.NamedTemporaryFile("w", suffix=".md", encoding="utf-8", delete=False) as tmp:
-        tmp.write(content)
-        tmp_path = tmp.name
+    """Текст → docx чистым python: строки «# …» — заголовки, остальное — абзацы."""
     try:
-        out = subprocess.run(
-            ["pandoc", tmp_path, "-o", str(p)], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60
-        )
-        if out.returncode != 0 or not p.exists():
-            raise ToolError(f"pandoc не справился: {out.stderr[:200]}")
-    finally:
-        Path(tmp_path).unlink(missing_ok=True)
+        from docx import Document
+    except ImportError as exc:
+        raise ToolError(f"Нет библиотеки python-docx: {exc}")
+    doc = Document()
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            level = min(len(stripped) - len(stripped.lstrip("#")), 4)
+            doc.add_heading(stripped.lstrip("#").strip(), level=level)
+        else:
+            doc.add_paragraph(line)
+    doc.save(str(p))
 
 
 def fs_write(path: str, content: str) -> str:
@@ -176,12 +190,7 @@ def desktop_read(path: str) -> str:
     if p.suffix.lower() == ".pdf":
         return _read_pdf(p)
     if p.suffix.lower() == ".docx":
-        out = subprocess.run(
-            ["pandoc", str(p), "-t", "plain"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30
-        )
-        if out.returncode != 0:
-            raise ToolError(f"Не смог прочитать docx: {out.stderr[:200]}")
-        return out.stdout
+        return _docx_to_text(p)
     return _read_text_smart(p)
 
 
