@@ -29,6 +29,8 @@ _BASE_PROMPT = """\
   пользователя, сессии живые): navigate → snapshot → click/type по ref. Отправка сообщения
   в WhatsApp — необратимое действие: подтверди адресата и текст до отправки.
 - Почта — инструменты mail__* (чтение, поиск, отправка).
+- Рабочий стол пользователя — desktop_list/desktop_read, ТОЛЬКО чтение (txt, docx, pdf).
+  Писать, менять и удалять там нельзя — для записей используй рабочую папку.
 - Если инструмент вернул ошибку — попробуй исправить параметры и повтори, не сдавайся сразу.
 
 Память (файлы в твоей рабочей папке):
@@ -93,6 +95,8 @@ _TOOLS = {
     "fs_delete": mini_tools.fs_delete,
     "browser": mini_tools.browser,
     "memory_note": mini_tools.memory_note,
+    "desktop_list": mini_tools.desktop_list,
+    "desktop_read": mini_tools.desktop_read,
 }
 
 _TOOL_SCHEMAS = [
@@ -128,6 +132,16 @@ _TOOL_SCHEMAS = [
         "name": "memory_note", "description": "Записать заметку в дневник (memory/сегодня.md): над чем работаем, что решили",
         "parameters": {"type": "object", "properties": {
             "text": {"type": "string"}}, "required": ["text"]}}},
+    {"type": "function", "function": {
+        "name": "desktop_list", "description": "Список файлов на рабочем столе пользователя (только чтение)",
+        "parameters": {"type": "object", "properties": {
+            "subdir": {"type": "string", "description": "подпапка, пусто = сам рабочий стол"}},
+            "required": []}}},
+    {"type": "function", "function": {
+        "name": "desktop_read",
+        "description": "Прочитать файл с рабочего стола (txt, md, docx, pdf). Только чтение — менять и удалять там ничего нельзя",
+        "parameters": {"type": "object", "properties": {
+            "path": {"type": "string"}}, "required": ["path"]}}},
 ]
 
 

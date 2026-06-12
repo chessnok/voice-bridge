@@ -107,6 +107,74 @@ def fs_delete(path: str) -> str:
     return f"Файл {src.name} перемещён в Корзину"
 
 
+def _desktop_dir() -> Path:
+    """Рабочий стол пользователя: обычный, OneDrive (Windows) или локализованный (Linux)."""
+    home = Path.home()
+    for candidate in (home / "Desktop", home / "OneDrive" / "Desktop", home / "Рабочий стол"):
+        if candidate.is_dir():
+            return candidate
+    raise ToolError("Не нашёл папку рабочего стола")
+
+
+def _safe_desktop_path(rel: str) -> Path:
+    """Путь строго внутри рабочего стола — только чтение, ../ отшибается."""
+    base = _desktop_dir().resolve()
+    p = (base / rel.lstrip("/\\")).resolve()
+    if not p.is_relative_to(base):
+        raise ToolError(f"Путь вне рабочего стола: {rel}")
+    return p
+
+
+def _read_pdf(p: Path, limit: int = 8000) -> str:
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(p))
+    pages = []
+    total = 0
+    for i, page in enumerate(reader.pages, 1):
+        text = (page.extract_text() or "").strip()
+        pages.append(text)
+        total += len(text)
+        if total > limit:
+            pages.append(f"…(обрезано, всего страниц: {len(reader.pages)}, прочитано: {i})")
+            break
+    return "\n\n".join(pages) or "(в PDF нет текстового слоя)"
+
+
+def desktop_list(subdir: str = "") -> str:
+    """Список файлов на рабочем столе (только чтение)."""
+    base = _safe_desktop_path(subdir) if subdir else _desktop_dir()
+    if not base.is_dir():
+        raise ToolError(f"Папки нет: {subdir}")
+    items = sorted(
+        p.name + ("/" if p.is_dir() else "")
+        for p in base.iterdir() if not p.name.startswith((".", "~$"))
+    )
+    return "\n".join(items) or "(пусто)"
+
+
+def desktop_read(path: str) -> str:
+    """Прочитать файл с рабочего стола: txt/md — как есть, docx — pandoc, pdf — pypdf."""
+    p = _safe_desktop_path(path)
+    if not p.exists():
+        raise ToolError(f"Файла нет: {path}")
+    if p.is_dir():
+        raise ToolError(f"Это папка, файлы внутри покажет desktop_list: {path}")
+    if p.suffix.lower() == ".pdf":
+        return _read_pdf(p)
+    if p.suffix.lower() == ".docx":
+        out = subprocess.run(
+            ["pandoc", str(p), "-t", "plain"], capture_output=True, text=True, timeout=30
+        )
+        if out.returncode != 0:
+            raise ToolError(f"Не смог прочитать docx: {out.stderr[:200]}")
+        return out.stdout
+    try:
+        return p.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return p.read_text(encoding="cp1251", errors="replace")
+
+
 def memory_note(text: str) -> str:
     """Дописать заметку в дневник memory/ГГГГ-ММ-ДД.md."""
     from datetime import datetime
