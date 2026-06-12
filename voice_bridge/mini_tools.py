@@ -35,6 +35,19 @@ def fs_list(subdir: str = "") -> str:
     return "\n".join(items) or "(папка пуста)"
 
 
+def _read_text_smart(p: Path) -> str:
+    """Текст в неизвестной кодировке: BOM → UTF-16/UTF-8-sig, иначе UTF-8, фолбэк cp1251.
+
+    docx сюда не попадает — внутри него XML всегда UTF-8, его разбирает pandoc."""
+    raw = p.read_bytes()
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return raw.decode("utf-16")
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return raw.decode("cp1251", errors="replace")
+
+
 def fs_read(path: str) -> str:
     p = _safe_path(path)
     if not p.exists():
@@ -46,7 +59,7 @@ def fs_read(path: str) -> str:
         if out.returncode != 0:
             raise ToolError(f"Не смог прочитать docx: {out.stderr[:200]}")
         return out.stdout
-    return p.read_text(encoding="utf-8")
+    return _read_text_smart(p)
 
 
 def _write_docx(p, content: str) -> None:
@@ -169,10 +182,7 @@ def desktop_read(path: str) -> str:
         if out.returncode != 0:
             raise ToolError(f"Не смог прочитать docx: {out.stderr[:200]}")
         return out.stdout
-    try:
-        return p.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        return p.read_text(encoding="cp1251", errors="replace")
+    return _read_text_smart(p)
 
 
 def memory_note(text: str) -> str:
