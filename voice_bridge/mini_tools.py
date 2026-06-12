@@ -41,7 +41,7 @@ def fs_read(path: str) -> str:
         raise ToolError(f"Файла нет: {path}")
     if p.suffix == ".docx":
         out = subprocess.run(
-            ["pandoc", str(p), "-t", "plain"], capture_output=True, text=True, timeout=30
+            ["pandoc", str(p), "-t", "plain"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30
         )
         if out.returncode != 0:
             raise ToolError(f"Не смог прочитать docx: {out.stderr[:200]}")
@@ -58,7 +58,7 @@ def _write_docx(p, content: str) -> None:
         tmp_path = tmp.name
     try:
         out = subprocess.run(
-            ["pandoc", tmp_path, "-o", str(p)], capture_output=True, text=True, timeout=60
+            ["pandoc", tmp_path, "-o", str(p)], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60
         )
         if out.returncode != 0 or not p.exists():
             raise ToolError(f"pandoc не справился: {out.stderr[:200]}")
@@ -164,7 +164,7 @@ def desktop_read(path: str) -> str:
         return _read_pdf(p)
     if p.suffix.lower() == ".docx":
         out = subprocess.run(
-            ["pandoc", str(p), "-t", "plain"], capture_output=True, text=True, timeout=30
+            ["pandoc", str(p), "-t", "plain"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30
         )
         if out.returncode != 0:
             raise ToolError(f"Не смог прочитать docx: {out.stderr[:200]}")
@@ -204,7 +204,7 @@ def browser(command: str) -> str:
     if not parts or parts[0] not in _BROWSER_ALLOWED:
         raise ToolError(f"Разрешены только: {', '.join(sorted(_BROWSER_ALLOWED))}")
     out = subprocess.run(
-        [config.AGENT_BROWSER_BIN, *parts], capture_output=True, text=True, timeout=60
+        [config.AGENT_BROWSER_BIN, *parts], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60
     )
     result = (out.stdout + out.stderr).strip()
     return result[:4000] or "(пусто)"
