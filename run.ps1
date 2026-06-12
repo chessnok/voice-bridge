@@ -55,7 +55,10 @@ try {
     # --- голосовой клиент (на переднем плане) ---
     $env:VB_AGENT_URL = "http://127.0.0.1:$port"
     & $py -m voice_bridge.main @args
+    $clientExit = $LASTEXITCODE
 } finally {
     if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
     Write-Host "[run] сервер остановлен"
 }
+# ненулевой код наружу: планировщик считает запуск неудачным и рестартует задачу
+if ($clientExit) { exit $clientExit }
