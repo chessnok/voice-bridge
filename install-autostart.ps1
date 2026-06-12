@@ -1,12 +1,14 @@
 # Автостарт на Windows: задача планировщика при входе пользователя.
 # Службой Windows делать нельзя — службы не имеют доступа к микрофону/динамикам
 # пользовательской сессии. Запуск:  .\install-autostart.ps1   (один раз)
+#          другой режим:  .\install-autostart.ps1 -Mode --talk
 # Удалить:  Unregister-ScheduledTask -TaskName VoiceBridge -Confirm:$false
+param([string]$Mode = "--talk-cascade")
 $ErrorActionPreference = "Stop"
 $repo = $PSScriptRoot
 
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
-    -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$repo\run.ps1`" --talk" `
+    -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$repo\run.ps1`" $Mode" `
     -WorkingDirectory $repo
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $settings = New-ScheduledTaskSettingsSet `
