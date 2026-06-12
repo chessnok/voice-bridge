@@ -185,20 +185,43 @@ def main() -> None:
     parser.add_argument("--wav", help="тест: аудиофайл вместо микрофона")
     args = parser.parse_args()
 
-    if args.talk:
-        from . import talk
+    try:
+        if args.talk:
+            from . import talk
 
-        talk.run_talk_mode()
-    elif args.talk_cascade:
-        from . import talk_cascade
+            talk.run_talk_mode()
+        elif args.talk_cascade:
+            from . import talk_cascade
 
-        talk_cascade.run_cascade_mode()
-    elif args.text:
-        handle_text(args.text)
-    elif args.wav:
-        handle_text(stt.transcribe_wav(args.wav))
-    else:
-        run_hotkey_loop()
+            talk_cascade.run_cascade_mode()
+        elif args.text:
+            handle_text(args.text)
+        elif args.wav:
+            handle_text(stt.transcribe_wav(args.wav))
+        else:
+            run_hotkey_loop()
+    except KeyboardInterrupt:
+        raise
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        _play_error_sound()
+        sys.exit(1)
+
+
+def _play_error_sound() -> None:
+    """Окно автостарта скрыто — о падении сообщаем голосом, иначе сбой беззвучен."""
+    error_mp3 = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sounds", "error.mp3"
+    )
+    try:
+        tts.play_file(error_mp3)
+    except Exception:
+        try:
+            tts.beep(440, 400)
+        except Exception:
+            pass  # звук недоступен совсем — причина уже в client.log
 
 
 if __name__ == "__main__":

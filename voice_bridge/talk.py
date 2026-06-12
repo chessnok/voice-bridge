@@ -396,6 +396,14 @@ def run_talk_mode() -> None:
     if not config.OPENAI_API_KEY:
         raise SystemExit("Нет OPENAI_API_KEY — разговорный режим требует ключ")
     _prewarm()
+    # голосовая заставка «готов» — до открытия микрофона, чтобы не попала в realtime-сессию
+    from pathlib import Path
+
+    from . import tts
+    try:
+        tts.play_file(str(Path(__file__).resolve().parent.parent / "sounds" / "ready.mp3"))
+    except Exception as exc:
+        print(f"[разговор] заставка не сыграла: {exc}")
     try:
         asyncio.run(_connect())
     except KeyboardInterrupt:
