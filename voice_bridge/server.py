@@ -64,6 +64,7 @@ def main() -> None:
         vblog.setup_file(log_path)
     if config.SERVER_BIND not in ("127.0.0.1", "localhost") and not config.AGENT_TOKEN:
         raise SystemExit("Небезопасно: bind наружу без VB_AGENT_TOKEN. Задай токен в .env.")
+    mini_agent.reset_session()  # каждый запуск — с чистым контекстом (память — в MEMORY.md)
     server = ThreadingHTTPServer((config.SERVER_BIND, config.SERVER_PORT), AgentHandler)
     print(f"[сервер] агент слушает {config.SERVER_BIND}:{config.SERVER_PORT}")
     server.serve_forever()

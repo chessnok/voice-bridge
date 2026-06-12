@@ -93,12 +93,18 @@ REALTIME_SUMMARY_TOKENS = int(os.environ.get("VB_RT_SUMMARY_TOKENS", "12000"))
 REALTIME_VAD_EAGERNESS = os.environ.get("VB_VAD_EAGERNESS", "auto")
 
 # Мини-агент
-MINI_MODEL = os.environ.get("VB_MINI_MODEL", "gpt-5.1")
+# gpt-5.1 жёг ~$0.10/задачу почти целиком на input-токены; для файлово-почтовых
+# задач хватает mini (~5x дешевле), вернуть можно через VB_MINI_MODEL
+MINI_MODEL = os.environ.get("VB_MINI_MODEL", "gpt-5-mini")
 MINI_WORKDIR = os.environ.get("VB_MINI_WORKDIR", "~/Ассистент")
 MINI_SESSION_DIR = os.environ.get("VB_MINI_SESSION_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__)), "sessions"))
 MINI_MAX_STEPS = int(os.environ.get("VB_MINI_MAX_STEPS", "15"))
 MINI_REASONING = os.environ.get("VB_MINI_REASONING", "low")
-MINI_HISTORY_LIMIT = int(os.environ.get("VB_MINI_HISTORY_LIMIT", "60"))
+MINI_HISTORY_LIMIT = int(os.environ.get("VB_MINI_HISTORY_LIMIT", "20"))
+# Ответ инструмента длиннее лимита обрезается (простыни почты/браузера раздували контекст)
+MINI_TOOL_RESULT_LIMIT = int(os.environ.get("VB_MINI_TOOL_RESULT_LIMIT", "6000"))
+# Сколько символов tool-ответа оставлять в истории МЕЖДУ задачами
+MINI_HISTORY_TOOL_TRIM = int(os.environ.get("VB_MINI_HISTORY_TOOL_TRIM", "1500"))
 
 # TTS — edge-tts, русские голоса: ru-RU-DmitryNeural, ru-RU-SvetlanaNeural
 TTS_VOICE = os.environ.get("VB_TTS_VOICE", "ru-RU-DmitryNeural")

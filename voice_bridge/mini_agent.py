@@ -161,25 +161,54 @@ def _load_history() -> list:
     return []
 
 
+def _trim_tool_message(m: dict) -> dict:
+    """Простыни tool-ответов не тащим между задачами — внутри задачи агент уже их отработал."""
+    content = m.get("content") or ""
+    limit = config.MINI_HISTORY_TOOL_TRIM
+    if m.get("role") != "tool" or len(content) <= limit:
+        return m
+    return {**m, "content": content[:limit] + "\n…(обрезано при сохранении истории)"}
+
+
 def _save_history(messages: list) -> None:
     # системное сообщение не храним, историю подрезаем
     tail = [m for m in messages if m.get("role") != "system"][-config.MINI_HISTORY_LIMIT:]
     # история не должна начинаться с ответа инструмента (валидность для API)
     while tail and tail[0].get("role") == "tool":
         tail.pop(0)
+    tail = [_trim_tool_message(m) for m in tail]
     _session_file().write_text(
         json.dumps(tail, ensure_ascii=False, indent=1), encoding="utf-8"
     )
 
 
+def reset_session() -> None:
+    """Чистый контекст после перезапуска: история — в .prev.json (один бэкап).
+
+    Долгосрочное живёт не здесь, а в MEMORY.md и дневнике — они в системном промпте."""
+    f = _session_file()
+    if f.exists():
+        backup = f.with_suffix(".prev.json")
+        backup.unlink(missing_ok=True)
+        f.rename(backup)
+        print(f"[агент] контекст очищен, прошлая сессия — {backup.name}")
+
+
+def _cap(result: str) -> str:
+    limit = config.MINI_TOOL_RESULT_LIMIT
+    if len(result) <= limit:
+        return result
+    return result[:limit] + "\n…(обрезано: ответ инструмента слишком длинный, уточни запрос)"
+
+
 def _run_tool(name: str, args: dict) -> str:
     if "__" in name:  # инструмент MCP-сервера
-        return mcp_client.call(name, args)
+        return _cap(mcp_client.call(name, args))
     fn = _TOOLS.get(name)
     if fn is None:
         return f"Ошибка: нет инструмента {name}"
     try:
-        return fn(**args)
+        return _cap(fn(**args))
     except mini_tools.ToolError as exc:
         return f"Ошибка: {exc}"
     except Exception as exc:
