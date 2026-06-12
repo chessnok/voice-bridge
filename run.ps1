@@ -50,7 +50,7 @@ try {
         }
         Start-Sleep -Milliseconds 500
     }
-    Write-Host "[run] сервер агента: http://127.0.0.1:$port (лог: logs\server.log)"
+    Write-Host "[run] сервер агента: http://127.0.0.1:$port (логи: logs\server.log, logs\client.log)"
 
     # --- голосовой клиент (на переднем плане) ---
     $env:VB_AGENT_URL = "http://127.0.0.1:$port"

@@ -24,8 +24,9 @@ if pkill -f "python -m voice_bridge.server" 2>/dev/null; then
   sleep 0.5
 fi
 
-# сервер агента (фоном)
-VB_SERVER_PORT="$PORT" "$PY" -m voice_bridge.server >> logs/server.log 2>&1 &
+# сервер агента (фоном); лог с метками времени пишет сам через vblog,
+# редирект ловит только вывод до его включения (ошибки самого старта)
+VB_SERVER_PORT="$PORT" VB_SERVER_LOG="logs/server.log" "$PY" -m voice_bridge.server >> logs/server.log 2>&1 &
 SERVER_PID=$!
 trap 'kill $SERVER_PID 2>/dev/null; wait $SERVER_PID 2>/dev/null; echo; echo "[run] сервер остановлен"' EXIT
 

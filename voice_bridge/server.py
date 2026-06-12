@@ -59,10 +59,9 @@ def main() -> None:
     # его системной ANSI-кодировкой (cp1251) и ломает русский текст
     log_path = os.environ.get("VB_SERVER_LOG")
     if log_path:
-        os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
-        log_file = open(log_path, "a", encoding="utf-8", buffering=1)
-        sys.stdout = log_file
-        sys.stderr = log_file
+        from . import vblog
+
+        vblog.setup_file(log_path)
     if config.SERVER_BIND not in ("127.0.0.1", "localhost") and not config.AGENT_TOKEN:
         raise SystemExit("Небезопасно: bind наружу без VB_AGENT_TOKEN. Задай токен в .env.")
     server = ThreadingHTTPServer((config.SERVER_BIND, config.SERVER_PORT), AgentHandler)

@@ -173,6 +173,9 @@ def run_hotkey_loop() -> None:
 
 
 def main() -> None:
+    from . import vblog
+
+    vblog.setup_tee("client.log")  # консоль + logs/client.log (виден и после автостарта)
     parser = argparse.ArgumentParser(description="Голосовой ассистент")
     parser.add_argument("--talk", action="store_true",
                         help="живой разговор: Realtime API (быстро, перебивания)")
