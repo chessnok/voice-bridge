@@ -13,7 +13,7 @@ $action = New-ScheduledTaskAction -Execute "powershell.exe" `
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 # задержка после входа: даём подняться сети (git pull/uv) и аудиоустройствам,
 # иначе клиент падает на старте и кажется, что автостарт «не сработал»
-$trigger.Delay = "PT30S"
+$trigger.Delay = "PT15S"
 $settings = New-ScheduledTaskSettingsSet `
     -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) `
     -ExecutionTimeLimit (New-TimeSpan -Days 365) `
