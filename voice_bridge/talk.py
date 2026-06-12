@@ -12,7 +12,7 @@ import threading
 import numpy as np
 import sounddevice as sd
 
-from . import agent, config, mini_agent, observability
+from . import agent, config, mini_agent, mute, observability
 
 _RT_RATE = 24_000  # Realtime API работает на pcm16 24kHz
 _CHUNK = 1200  # 50мс
@@ -156,6 +156,8 @@ async def _mic_sender(ws) -> None:
     loop = asyncio.get_running_loop()
 
     def cb(indata, frames, time_info, status) -> None:
+        if mute.muted.is_set():
+            return  # микрофон заглушен hotkey'ем
         try:
             loop.call_soon_threadsafe(queue.put_nowait, bytes(indata))
         except RuntimeError:
@@ -174,7 +176,9 @@ async def _mic_sender(ws) -> None:
             }))
 
 
-async def _handle_function_call(ws, player: "_Player", call_id: str, name: str, args_json: str) -> None:
+async def _handle_function_call(
+    ws, player: "_Player", idle: asyncio.Event, call_id: str, name: str, args_json: str
+) -> None:
     try:
         args = json.loads(args_json or "{}")
     except json.JSONDecodeError:
@@ -193,13 +197,32 @@ async def _handle_function_call(ws, player: "_Player", call_id: str, name: str, 
         text = args.get("text", "")
         print(f"  [задача] {text}")
         player.earcon(660)  # сигнал «принял, работаю»
-        try:
-            result = await asyncio.to_thread(agent.ask_agent, text)
-        except agent.AgentError as exc:
-            result = f"Ошибка: {exc}"
+
+        async def run_task() -> str:
+            try:
+                return await asyncio.to_thread(agent.ask_agent, text)
+            except agent.AgentError as exc:
+                return f"Ошибка: {exc}"
+
+        task = asyncio.create_task(run_task())
+        done, _ = await asyncio.wait({task}, timeout=config.TASK_ANNOUNCE_SECONDS)
+        if not done:
+            # задача затянулась — голосом предупреждаем отдельным ответом вне диалога
+            await idle.wait()
+            idle.clear()  # held до response.done заставки — результат её не оборвёт
+            await ws.send(json.dumps({"type": "response.create", "response": {
+                "conversation": "none",
+                "instructions": (
+                    "Скажи одной короткой фразой, что уходишь делать задачу "
+                    f"(«{text[:80]}») и скажешь, как закончишь. Без вопросов."
+                ),
+            }}))
+        result = await task
+        await idle.wait()  # заставка договаривается до конца, потом докладываем
         player.earcon(990)  # сигнал «готово»
         print(f"  [задача готова] {result[:100]}")
 
+    await idle.wait()  # не создаём новый ответ, пока активен текущий
     await ws.send(json.dumps({
         "type": "conversation.item.create",
         "item": {"type": "function_call_output", "call_id": call_id, "output": result},
@@ -292,6 +315,8 @@ async def _talk(ws) -> None:
     sender = asyncio.create_task(_mic_sender(ws))
     log = _SessionLog()
     greeted = False
+    response_idle = asyncio.Event()  # нет активного ответа модели — можно слать response.create
+    response_idle.set()
     # метрики текущего хода для online-оценки (Langfuse voice-turn)
     turn = {"user": "", "assistant": "", "interrupted": False,
             "tools": [], "speech_ended_at": 0.0, "first_audio_ms": None}
@@ -332,13 +357,16 @@ async def _talk(ws) -> None:
                 print(f"[голос] {transcript}")
                 log.add(event.get("item_id", ""), "assistant", transcript)
                 turn["assistant"] = transcript
+            elif etype == "response.created":
+                response_idle.clear()
             elif etype == "response.function_call_arguments.done":
                 turn["tools"].append(event.get("name", "do_task"))
                 asyncio.create_task(_handle_function_call(
-                    ws, player, event["call_id"],
+                    ws, player, response_idle, event["call_id"],
                     event.get("name", "do_task"), event.get("arguments", ""),
                 ))
             elif etype == "response.done":
+                response_idle.set()
                 usage = (event.get("response") or {}).get("usage") or {}
                 log.total_tokens = usage.get("total_tokens", log.total_tokens)
                 asyncio.create_task(_maybe_summarize(ws, log))
@@ -357,6 +385,7 @@ async def _talk(ws) -> None:
                     ).start()
                     turn.update({"user": "", "assistant": "", "interrupted": False, "tools": []})
             elif etype == "error":
+                response_idle.set()  # ответ мог умереть без response.done — не зависаем в idle.wait
                 msg = str(event.get("error", {}).get("message", event))
                 if "already shorter" in msg:
                     pass  # truncate был лишним: реплику дослушали целиком
@@ -396,6 +425,7 @@ def run_talk_mode() -> None:
     if not config.OPENAI_API_KEY:
         raise SystemExit("Нет OPENAI_API_KEY — разговорный режим требует ключ")
     _prewarm()
+    mute.start_hotkey_listener()
     # голосовая заставка «готов» — до открытия микрофона, чтобы не попала в realtime-сессию
     from pathlib import Path
 

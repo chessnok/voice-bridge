@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import sounddevice as sd
 
-from . import agent, config, stt, tts
+from . import agent, config, mute, stt, tts
 
 _FRAME = 480  # 30мс @ 16kHz
 _PREROLL_FRAMES = 10          # 0.3с до начала речи
@@ -90,10 +90,26 @@ def _handle_utterance(audio: np.ndarray) -> None:
     if not text:
         return
     print(f"[вы] {text}")
-    try:
-        reply = agent.ask_agent(text, extra_system=_CASCADE_RULES)
-    except agent.AgentError as exc:
-        reply = f"Ошибка: {exc}"
+    result: dict = {}
+
+    def work() -> None:
+        try:
+            result["reply"] = agent.ask_agent(text, extra_system=_CASCADE_RULES)
+        except agent.AgentError as exc:
+            result["reply"] = f"Ошибка: {exc}"
+
+    worker = threading.Thread(target=work, daemon=True)
+    worker.start()
+    worker.join(timeout=config.TASK_ANNOUNCE_SECONDS)
+    announced = worker.is_alive()
+    if announced:
+        # задача затянулась — предупреждаем голосом и ждём дальше;
+        # speak блокирует, так что фраза договаривается до конца в любом случае
+        tts.speak(f"Ушёл делать: {text[:80]}. Скажу, как закончу.")
+        worker.join()
+    reply = result.get("reply", "Что-то пошло не так, ответа нет.")
+    if announced:
+        reply = f"Готово. {reply}"
     print(f"[голос] {reply}")
     tts.speak(reply)  # блокирует до конца озвучки — микрофон в это время на паузе
 
@@ -105,12 +121,14 @@ def run_cascade_mode() -> None:
     busy = threading.Event()
 
     def cb(indata, frame_count, time_info, status) -> None:
-        if busy.is_set():
-            return  # говорим сами — не слушаем (эхо)
+        if busy.is_set() or mute.muted.is_set():
+            return  # говорим сами или микрофон заглушен hotkey'ем
         try:
             frames.put_nowait(indata[:, 0].copy())
         except queue.Full:
             pass
+
+    mute.start_hotkey_listener()
 
     stream = sd.InputStream(
         samplerate=config.SAMPLE_RATE, channels=1, dtype="float32",

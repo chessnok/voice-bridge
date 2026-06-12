@@ -28,6 +28,11 @@ VAD_SENSITIVITY = float(os.environ.get("VB_VAD_SENSITIVITY", "3.0"))
 # Сколько секунд тишины = конец фразы (больше = терпеливее к паузам в диктовке)
 VAD_END_SILENCE_SECONDS = float(os.environ.get("VB_VAD_END_SILENCE", "1.2"))
 
+# Горячая клавиша «перестань/начни слышать» в режимах talk и talk-cascade
+MUTE_HOTKEY = os.environ.get("VB_MUTE_HOTKEY", "ctrl+m")
+# Задача дольше этого — голосом предупреждаем «ушёл делать», по завершении докладываем
+TASK_ANNOUNCE_SECONDS = float(os.environ.get("VB_TASK_ANNOUNCE", "3.0"))
+
 # Детерминированная расшифровка
 STT_TEMPERATURE = float(os.environ.get("VB_STT_TEMPERATURE", "0"))
 
