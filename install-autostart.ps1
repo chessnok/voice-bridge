@@ -11,9 +11,8 @@ $action = New-ScheduledTaskAction -Execute "powershell.exe" `
     -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$repo\run.ps1`" $Mode" `
     -WorkingDirectory $repo
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
-# задержка после входа: даём подняться сети (git pull/uv) и аудиоустройствам,
-# иначе клиент падает на старте и кажется, что автостарт «не сработал»
-$trigger.Delay = "PT15S"
+# фиксированной задержки нет: клиент сам ждёт появления микрофона/динамика
+# до VB_AUDIO_WAIT секунд (по умолчанию 30) и стартует, как только звук готов
 $settings = New-ScheduledTaskSettingsSet `
     -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) `
     -ExecutionTimeLimit (New-TimeSpan -Days 365) `

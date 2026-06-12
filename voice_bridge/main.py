@@ -172,6 +172,34 @@ def run_hotkey_loop() -> None:
         listener.join()
 
 
+def _wait_audio_ready(timeout: float) -> bool:
+    """Ждём микрофон и динамик (после входа в систему звук поднимается не сразу).
+
+    Готовы — стартуем немедленно; не появились за timeout — False."""
+    import time
+
+    import sounddevice as sd
+
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            sd.check_input_settings(device=config.INPUT_DEVICE,
+                                    samplerate=config.SAMPLE_RATE, channels=1)
+            sd.check_output_settings(channels=1)
+            return True
+        except Exception as exc:
+            if time.monotonic() >= deadline:
+                print(f"[звук] аудио так и не поднялось за {timeout:.0f}с: {exc}")
+                return False
+            # PortAudio кэширует список устройств — переинициализируем перед повтором
+            try:
+                sd._terminate()
+                sd._initialize()
+            except Exception:
+                pass
+            time.sleep(2)
+
+
 def main() -> None:
     from . import vblog
 
@@ -184,6 +212,11 @@ def main() -> None:
     parser.add_argument("--text", help="тест: команда текстом, без микрофона")
     parser.add_argument("--wav", help="тест: аудиофайл вместо микрофона")
     args = parser.parse_args()
+
+    needs_audio = args.talk or args.talk_cascade or not (args.text or args.wav)
+    if needs_audio and not _wait_audio_ready(config.AUDIO_WAIT_SECONDS):
+        _play_error_sound()  # динамик мог появиться раньше микрофона — пробуем сказать
+        sys.exit(1)  # ненулевой код — планировщик перезапустит задачу
 
     try:
         if args.talk:
