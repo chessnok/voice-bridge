@@ -121,7 +121,7 @@ _TOOL_SCHEMAS = [
         "parameters": {"type": "object", "properties": {
             "path": {"type": "string"}}, "required": ["path"]}}},
     {"type": "function", "function": {
-        "name": "browser", "description": "Один шаг браузера agent-browser: 'open <url>' | 'snapshot' | 'click <ref>' | 'type <ref> <текст>' | 'press <клавиша>' | 'get text <ref>' | 'close'",
+        "name": "browser", "description": "Один шаг браузера agent-browser. Цикл: 'open <url>' → 'snapshot -i' (даёт ссылки @e1..) → 'click @e3' / 'fill @e2 <текст>' / 'press Enter' → после смены страницы снова 'snapshot -i' (старые @e-ссылки протухают). Ещё: 'get text @e1', 'wait <ms>', 'screenshot x.png', 'close'",
         "parameters": {"type": "object", "properties": {
             "command": {"type": "string"}}, "required": ["command"]}}},
     {"type": "function", "function": {

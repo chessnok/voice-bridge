@@ -120,9 +120,13 @@ def memory_note(text: str) -> str:
     return "Записал в дневник"
 
 
+# Реальные подкоманды agent-browser CLI; "eval" намеренно исключён —
+# произвольный JS равен полному доступу, что ломает белый список
 _BROWSER_ALLOWED = {
-    "open", "snapshot", "click", "type", "press", "get", "screenshot",
-    "close", "list-tabs", "wait", "scroll", "fill", "back",
+    "open", "snapshot", "click", "dblclick", "type", "fill", "press",
+    "keyboard", "hover", "focus", "check", "uncheck", "select", "drag",
+    "upload", "download", "scroll", "scrollintoview", "wait", "screenshot",
+    "get", "is", "find", "back", "forward", "reload", "close",
 }
 
 
